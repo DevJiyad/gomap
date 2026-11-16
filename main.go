@@ -45,7 +45,7 @@ func main() {
 	start := time.Now()
 	fmt.Printf("%v[*] Scanning %v", yellow, reset)
 	var wg sync.WaitGroup
-	limit := make(chan struct{}, 3000) // Higher concurrency for much faster scanning
+	limit := make(chan struct{}, 3000) 
 	for port = 1; port <= 65535; port++ {
 		limit <- struct{}{}
 		wg.Go(func() {
