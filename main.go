@@ -5,6 +5,23 @@ import (
 	"time"
 )
 
+const Cyan = "\033[36m"
+
+func PrintBanner() {
+	banner := `
+   ______ ____  __  __    _    ____  
+  / ____// __ \|  \/  |  / \  |  _ \ 
+
+ | |  _ | |  | | |\/| | / _ \ | |_) |
+ | |_| || |__| | |  | |/ ___ \|  __/ 
+  \____| \____/|_|  |_/_/   \_\_|    
+                                     `
+	fmt.Println(Cyan + banner + Reset)
+	fmt.Printf(Yellow+"  [*] Target: %s | Timeout: %v | Workers: %d\n\n"+Reset, cfg.Target, cfg.Timeout, cfg.Workers)
+}
+
+
+
 const (
 	Red    = "\033[31m"
 	Green  = "\033[32m"
@@ -20,7 +37,7 @@ func main() {
 		Usage()
 		return
 	}
-
+	PrintBanner()
 	start := time.Now()
 
 	if cfg.All {
