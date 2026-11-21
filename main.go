@@ -5,9 +5,15 @@ import (
 	"time"
 )
 
-const Cyan = "\033[36m"
+const (
+	Red    = "\033[31m"
+	Green  = "\033[32m"
+	Yellow = "\033[33m"
+	Cyan   = "\033[36m"
+	Reset  = "\033[0m"
+)
 
-func PrintBanner() {
+func PrintBanner(cfg Config) {
 	banner := `
    ______ ____  __  __    _    ____  
   / ____// __ \|  \/  |  / \  |  _ \ 
@@ -15,19 +21,10 @@ func PrintBanner() {
  | |  _ | |  | | |\/| | / _ \ | |_) |
  | |_| || |__| | |  | |/ ___ \|  __/ 
   \____| \____/|_|  |_/_/   \_\_|    
-                                     `
+`
 	fmt.Println(Cyan + banner + Reset)
 	fmt.Printf(Yellow+"  [*] Target: %s | Timeout: %v | Workers: %d\n\n"+Reset, cfg.Target, cfg.Timeout, cfg.Workers)
 }
-
-
-
-const (
-	Red    = "\033[31m"
-	Green  = "\033[32m"
-	Yellow = "\033[33m"
-	Reset  = "\033[0m"
-)
 
 func main() {
 	cfg := ParseFlags()
@@ -37,7 +34,8 @@ func main() {
 		Usage()
 		return
 	}
-	PrintBanner()
+
+	PrintBanner(cfg)
 	start := time.Now()
 
 	if cfg.All {
