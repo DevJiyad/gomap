@@ -12,7 +12,7 @@ A fast, lightweight, concurrent TCP port scanner written in Go with zero externa
 
 ## Installation & Build
 ```bash
-git clone https://github.com
+git clone https://github.com/DevJiyad/gomap
 cd gomap
 go build -o gomap.exe .
 ```
