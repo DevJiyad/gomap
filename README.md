@@ -1,3 +1,20 @@
+## Download & Install (Windows)
+
+1. Download **`gomap.exe`** from the [Releases](https://github.com) page.
+2. Run it directly in PowerShell or CMD from your Downloads folder:
+   ```bash
+   .\gomap.exe -p 80 scanme.nmap.org
+   ```
+
+### Optional: Run `gomap` From Any Folder (Add to PATH)
+To use `gomap` globally from any directory in your terminal:
+1. Move `gomap.exe` to a permanent folder (for example, `C:\Tools`).
+2. Press the **Windows Key**, search **Edit the system environment variables**, and click **Environment Variables**.
+3. Under **User variables**, select **Path** → **Edit** → **New**, and paste `C:\Tools`.
+4. Open a new terminal window and run:
+   ```bash
+   gomap -p 80 scanme.nmap.org
+   ```
 # gomap
 
 A fast, lightweight, concurrent TCP port scanner written in Go with zero external dependencies.
