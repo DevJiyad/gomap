@@ -40,14 +40,10 @@ func ParseFlags() Config {
 	// [STEP 2] Connect terminal flags to your Config struct using pointers (&):
 	flag.IntVar(&cfg.Port, "p", 0, "Single port number to scan")
 	flag.BoolVar(&cfg.All, "all", false, "Scan all 65,535 ports")
-	flag.IntVar(&cfg.Workers, "w", 1000, "Number of concurrent workers")
-	flag.DurationVar(&cfg.Timeout, "t", 500*time.Millisecond, "Timeout per port (e.g. 500ms, 1s)")
+	flag.DurationVar(&cfg.Timeout, "timeout", 500*time.Millisecond, "Timeout per port (e.g. 500ms, 1s)")
 
 	// Read all flags from the terminal (MUST happen before reading flag.Arg)
 	flag.Parse()
-
-	// Grab the target IP/domain (the first word without a '-' in front of it)
-	cfg.Target = flag.Arg(0)
 
 	return cfg
 }

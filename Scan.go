@@ -2,87 +2,58 @@ package main
 
 import (
 	"bufio"
-	_ "embed"
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
-// go:embed ports.txt
-var embeddedPorts string
-
-var portMap = make(map[int]string)
-
-// Load embedded ports
-func init() {
-	scanner := bufio.NewScanner(strings.NewReader(embeddedPorts))
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		parts := strings.Fields(line)
-		if len(parts) >= 2 {
-			port, err := strconv.Atoi(parts[0])
-			if err == nil {
-				portMap[port] = parts[1]
-			}
-		}
-	}
-}
-
-func getService(port int) string {
-	if service, exists := portMap[port]; exists {
-		return service
-	}
-	return "UNKNOWN"
-}
-
-// 1. Scans ONE single port (and tells you if it's closed too!)
-func Scan(cfg Config) {
-	address := fmt.Sprintf("%s:%d", cfg.Target, cfg.Port)
-	col, err := net.DialTimeout("tcp", address, cfg.Timeout)
+func grabBanner(con net.Conn, timeout time.Duration) string {
+	con.SetReadDeadline(time.Now().Add(timeout))
+	line, err := bufio.NewReader(con).ReadString('\n')
 	if err != nil {
-		fmt.Printf(Red+"[-] Port: %d is CLOSED or FILTERED\n"+Reset, cfg.Port)
-		return
+		return ""
 	}
-	defer col.Close()
-
-	service := getService(cfg.Port)
-	fmt.Printf(Green+"[*] Port: %d is OPENED -> "+Yellow+"%s\n"+Reset, cfg.Port, service)
+	return strings.TrimSpace(line)
 }
 
-// 2. Scans ALL 65,535 ports concurrently
-func ScanAll(cfg Config) {
-	ips, err := net.LookupHost(cfg.Target)
-	if err != nil || len(ips) == 0 {
-		fmt.Println(Red + "Error: Could not resolve target host!" + Reset)
+func Scan(cfg Config) {
+	address := fmt.Sprintf("%v:%v", cfg.Target, cfg.Port)
+	con, err := net.DialTimeout("tcp", address, cfg.Timeout)
+	if err != nil {
 		return
 	}
-	targetIP := ips
+	defer con.Close()
 
+	banner := grabBanner(con, cfg.Timeout)
+	if banner != "" {
+		fmt.Printf("%v[*] Port %v is Opened -> %s%v\n", Green, cfg.Port, banner, Reset)
+	} else {
+		fmt.Printf("%v[*] Port %v is Opened%v\n", Green, cfg.Port, Reset)
+	}
+}
+
+func ScanAll(cfg Config) {
 	var wg sync.WaitGroup
-	sem := make(chan struct{}, cfg.Workers)
 
-	for port := 1; port <= 65535; port++ {
+	for port := 0; port <= 65535; port++ {
 		port := port
-		wg.Add(1)
-		sem <- struct{}{}
-
-		go func() {
-			defer wg.Done()
-			defer func() { <-sem }()
-
-			address := fmt.Sprintf("%s:%d", targetIP, port)
-			col, err := net.DialTimeout("tcp", address, cfg.Timeout)
+		wg.Go(func() {
+			address := fmt.Sprintf("%v:%v", cfg.Target, port)
+			con, err := net.DialTimeout("tcp", address, cfg.Timeout)
 			if err != nil {
 				return
 			}
-			defer col.Close()
+			defer con.Close()
 
-			service := getService(port)
-			fmt.Printf(Green+"[*] Port: %d is OPENED -> "+Yellow+"%s\n"+Reset, port, service)
-		}()
+			banner := grabBanner(con, cfg.Timeout)
+			if banner != "" {
+				fmt.Printf("%v[*] Port %v is Opened -> %s%v\n", Green, port, banner, Reset)
+			} else {
+				fmt.Printf("%v[*] Port %v is Opened%v\n", Green, port, Reset)
+			}
+		})
 	}
-
 	wg.Wait()
 }
