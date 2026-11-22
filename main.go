@@ -23,7 +23,7 @@ func PrintBanner(cfg Config) {
   \____| \____/|_|  |_/_/   \_\_|    
 `
 	fmt.Println(Cyan + banner + Reset)
-	fmt.Printf(Yellow+"  [*] Target: %s | Timeout: %v | Workers: %d\n\n"+Reset, cfg.Target, cfg.Timeout, cfg.Workers)
+	fmt.Printf(Yellow+"  [*] Target: %s | Timeout: %v\n\n"+Reset, cfg.Target, cfg.Timeout)
 }
 
 func main() {
