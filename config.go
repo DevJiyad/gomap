@@ -44,6 +44,7 @@ func ParseFlags() Config {
 
 	// Read all flags from the terminal (MUST happen before reading flag.Arg)
 	flag.Parse()
+	cfg.Target = flag.Arg(0)
 
 	return cfg
 }
