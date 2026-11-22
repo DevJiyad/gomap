@@ -7,7 +7,7 @@ if you ./gomap or gomap and you just found something similar to this
 
 / \_**\_// ** \| \/ | / \ | \_ \
 
-| | _ | | | | |\/| | / _ \ | |_) |
+| | _ | | | | |\/| | / _ \ | |_ |
 | |_| || |**| | | | |/ \_** \| **/
 \_\_**| \__\_\_/|_| |_/_/ \_\_|
 
@@ -15,6 +15,7 @@ if you ./gomap or gomap and you just found something similar to this
 
 [!] Scan finished in 1.001s
 ``
+
 Do not panic just rerun the command
 
 ## Download & Install (Windows)
