@@ -24,18 +24,28 @@ func PrintBanner(cfg Config) {
   \____| \____/|_|  |_/_/   \_\_|    
 `
 	fmt.Println(Cyan + banner + Reset)
-	fmt.Printf(Yellow+"  [*] Target: %s | Timeout: %v\n\n"+Reset, cfg.Target, cfg.Timeout)
+	fmt.Printf(Yellow+"  [*] Target: %s | Timeout: %v | Workers: %v\n\n"+Reset, cfg.Target, cfg.Timeout, cfg.Workers)
 }
 
 func main() {
 	cfg := ParseFlags()
 
-	noFlags := /*Required*/ cfg.Target == "" || /*Not Required*/ cfg.Port == 0 && !cfg.All && !cfg.Lookup
+	noFlags := cfg.Target == "" || cfg.PortSpec == "" && !cfg.All && !cfg.Lookup && !cfg.LookupH
 
 	if noFlags {
 		fmt.Println(Red + "Error: Missing argument" + Reset)
 		flag.Usage()
 		return
+	}
+
+	var ports []int
+	if cfg.PortSpec != "" && !cfg.All {
+		var err error
+		ports, err = ParsePorts(cfg.PortSpec)
+		if err != nil {
+			fmt.Println(Red + err.Error() + Reset)
+			return
+		}
 	}
 
 	PrintBanner(cfg)
@@ -44,12 +54,17 @@ func main() {
 	if cfg.Lookup {
 		LookupIP(cfg)
 	}
+	if cfg.LookupH {
+		LookupHost(cfg)
+	}
 
+	var results []string
 	if cfg.All {
-		ScanAll(cfg)
-	} else if cfg.Port != 0 {
-		Scan(cfg)
+		results = ScanAll(cfg)
+	} else if cfg.PortSpec != "" {
+		results = ScanPorts(cfg, ports)
 	}
 
 	fmt.Printf(Yellow+"\n[!] Scan finished in %v\n"+Reset, time.Since(start).Round(time.Millisecond))
+	Output(cfg.Output, results, cfg)
 }

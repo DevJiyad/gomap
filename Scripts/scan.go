@@ -18,65 +18,68 @@ func grabBanner(con net.Conn, timeout time.Duration) string {
 	return strings.TrimSpace(line)
 }
 
-func LookupIP(cfg Config) {
-	ips, err := net.LookupIP(cfg.Target)
+func scanSinglePort(target string, port int, timeout time.Duration) string {
+	address := fmt.Sprintf("%v:%v", target, port)
+	con, err := net.DialTimeout("tcp", address, timeout)
 	if err != nil {
-		fmt.Printf("%s[!] Lookup failed for %s: %v%s\n", Red, cfg.Target, err, Reset)
-		return
-	}
-	if len(ips) == 0 {
-		fmt.Printf("%s[!] Lookup returned no IP addresses for %s%s\n", Red, cfg.Target, Reset)
-		return
-	}
-
-	fmt.Printf("%s[*] IP Lookup for %s%s\n", Cyan, cfg.Target, Reset)
-	seen := make(map[string]struct{}, len(ips))
-	for _, ip := range ips {
-		address := ip.String()
-		if _, exists := seen[address]; exists {
-			continue
-		}
-		seen[address] = struct{}{}
-		fmt.Printf("%s    -> %s%s\n", Green, address, Reset)
-	}
-}
-
-func Scan(cfg Config) {
-	address := fmt.Sprintf("%v:%v", cfg.Target, cfg.Port)
-	con, err := net.DialTimeout("tcp", address, cfg.Timeout)
-	if err != nil {
-		return
+		return ""
 	}
 	defer con.Close()
 
-	banner := grabBanner(con, cfg.Timeout)
+	banner := grabBanner(con, timeout)
 	if banner != "" {
-		fmt.Printf("%v[*] Port %v is Opened -> %s%v\n", Green, cfg.Port, banner, Reset)
+		fmt.Printf("%v[*] Port %v is Opened -> %s%v\n", Green, port, banner, Reset)
+		return fmt.Sprintf("[*] Port %v is Opened -> %s", port, banner)
 	} else {
-		fmt.Printf("%v[*] Port %v is Opened%v\n", Green, cfg.Port, Reset)
+		fmt.Printf("%v[*] Port %v is Opened%v\n", Green, port, Reset)
+		return fmt.Sprintf("[*] Port %v is Opened", port)
 	}
 }
 
-func ScanAll(cfg Config) {
+func ScanPorts(cfg Config, ports []int) []string {
 	var wg sync.WaitGroup
+	sem := make(chan struct{}, cfg.Workers)
+	var mu sync.Mutex
+	results := make([]string, 0)
 
-	for port := 0; port <= 65535; port++ {
+	for _, port := range ports {
 		port := port
-		wg.Go(func() {
-			address := fmt.Sprintf("%v:%v", cfg.Target, port)
-			con, err := net.DialTimeout("tcp", address, cfg.Timeout)
-			if err != nil {
-				return
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			if line := scanSinglePort(cfg.Target, port, cfg.Timeout); line != "" {
+				mu.Lock()
+				results = append(results, line)
+				mu.Unlock()
 			}
-			defer con.Close()
-
-			banner := grabBanner(con, cfg.Timeout)
-			if banner != "" {
-				fmt.Printf("%v[*] Port %v is Opened -> %s%v\n", Green, port, banner, Reset)
-			} else {
-				fmt.Printf("%v[*] Port %v is Opened%v\n", Green, port, Reset)
-			}
-		})
+		}()
 	}
 	wg.Wait()
+	return results
+}
+
+func ScanAll(cfg Config) []string {
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, cfg.Workers)
+	var mu sync.Mutex
+	results := make([]string, 0)
+
+	for port := 1; port <= 65535; port++ {
+		port := port
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			if line := scanSinglePort(cfg.Target, port, cfg.Timeout); line != "" {
+				mu.Lock()
+				results = append(results, line)
+				mu.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+	return results
 }

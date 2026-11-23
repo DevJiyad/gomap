@@ -65,6 +65,9 @@ go build -o gomap.exe .
 # Scan a single port
 ./gomap.exe -p 80 scanme.nmap.org
 
+# Scan a comma-separated list or range of ports
+./gomap.exe -p 22,80-90,443 scanme.nmap.org
+
 # Scan all 65,535 ports
 ./gomap.exe -all scanme.nmap.org
 
