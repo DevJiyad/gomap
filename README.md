@@ -1,6 +1,6 @@
 # gomap
 
-## Runs in windows only
+> **Note:** Built and tested primarily for Windows.
 
 A fast, lightweight, concurrent TCP port scanner written in Go with zero external dependencies.
 
@@ -8,10 +8,26 @@ A fast, lightweight, concurrent TCP port scanner written in Go with zero externa
 
 ## Features
 
-- **Concurrent Scanning:** Uses goroutines and a worker pool (`-w`) to scan thousands of ports in seconds.
-- **Built-in Service Detection:** Automatically identifies common services (SSH, HTTP, HTTPS, SMB, RDP, etc.) using an embedded port database.
-- **Customizable Timeouts:** Control per-port connection timeouts (`-timeout`) for fast local scans or slower remote targets.
+- **Concurrent Scanning:** Uses goroutines and a worker pool (`-w`) to scan thousands of ports in under a second.
+- **Banner Grabber (`-b`):** Connects to open ports to pull service banners (SSH, FTP, SMTP, etc.) and probes quiet HTTP/web servers automatically.
+- **Built-in Service Detection:** Identifies 5,000+ common services using an embedded Nmap service database.
+- **DNS & Quick Top-10 Scan (`-ip` / `-ipd`):** Resolve target domains to IP addresses with or without scanning the top 10 ports.
+- **File Export (`-o`):** Save clean scan results directly to a text file.
 - **Zero Dependencies:** Built purely with the Go standard library.
+
+## Install via Go
+
+```bash
+go install github.com/DevJiyad/gomap/Scripts@latest
+```
+
+## Build from source (Developers)
+
+```bash
+git clone https://github.com/DevJiyad/gomap.git
+cd gomap/Scripts
+go build -o gomap.exe .
+```
 
 ### Run `gomap` From Any Folder (Add to PATH)
 
@@ -25,33 +41,20 @@ To use `gomap` globally from any directory in your terminal:
    gomap -p 80 scanme.nmap.org
    ```
 
-## Install via Go (Developers)
-
 ```bash
-go install github.com/DevJiyad/gomap/Scripts
+# If you want to see all the commands
+./gomap
 ```
 
-Or build from source:
+## Examples
 
 ```bash
-git clone https://github.com/gomap/Scripts
-cd gomap
-go build -o gomap.exe .
-```
+# Scan top ports with smart banner grabbing
+gomap -b scanme.nmap.org
 
-## Usage
+# Scan a custom port range with 1000 workers
+gomap -p 20-100 -w 1000 scanme.nmap.org
 
-```bash
-# Scan a single port
-gomap -p 80 scanme.nmap.org
-
-# Scan a list or range of ports
-gomap -p 22,80,443 scanme.nmap.org
-gomap -p 20-211 scanme.nmap.org
-
-# Scan all 65,535 ports
-gomap -all scanme.nmap.org
-
-# Custom timeout and worker count
-gomap -all -w 1500 -timeout 300ms scanme.nmap.org
+# Save results to a file
+gomap -p 22,80 -b -o results.txt scanme.nmap.org
 ```
