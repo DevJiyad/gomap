@@ -1,85 +1,98 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"net"
-	"strings"
+	"sort"
 	"sync"
-	"time"
 )
 
-func grabBanner(con net.Conn, timeout time.Duration) string {
-	con.SetReadDeadline(time.Now().Add(timeout))
-	line, err := bufio.NewReader(con).ReadString('\n')
-	if err != nil {
-		return ""
+func Scan(cfg Config, ports []int) []string {
+	if len(ports) == 0 {
+		return nil
 	}
-	return strings.TrimSpace(line)
-}
 
-func scanSinglePort(target string, port int, timeout time.Duration) string {
-	address := fmt.Sprintf("%v:%v", target, port)
-	con, err := net.DialTimeout("tcp", address, timeout)
-	if err != nil {
-		return ""
+	workers := cfg.Workers
+	if workers <= 0 {
+		workers = 1
 	}
-	defer con.Close()
-
-	banner := grabBanner(con, timeout)
-	if banner != "" {
-		fmt.Printf("%v[*] Port %v is Opened -> %s%v\n", Green, port, banner, Reset)
-		return fmt.Sprintf("[*] Port %v is Opened -> %s", port, banner)
-	} else {
-		fmt.Printf("%v[*] Port %v is Opened%v\n", Green, port, Reset)
-		return fmt.Sprintf("[*] Port %v is Opened", port)
+	if workers > len(ports) {
+		workers = len(ports)
 	}
-}
 
-func ScanPorts(cfg Config, ports []int) []string {
-	var wg sync.WaitGroup
-	sem := make(chan struct{}, cfg.Workers)
-	var mu sync.Mutex
+	jobs := make(chan int)
 	results := make([]string, 0)
+	var wg sync.WaitGroup
+	var mu sync.Mutex
 
-	for _, port := range ports {
-		port := port
-		wg.Add(1)
+	wg.Add(workers)
+	for range workers {
 		go func() {
 			defer wg.Done()
-			sem <- struct{}{}
-			defer func() { <-sem }()
-			if line := scanSinglePort(cfg.Target, port, cfg.Timeout); line != "" {
+			for port := range jobs {
+				address := fmt.Sprintf("%v:%v", cfg.Target, port)
+				conn, err := net.DialTimeout("tcp", address, cfg.Timeout)
+				if err != nil {
+					continue
+				}
+
+				bannerText := banner(conn, cfg.Timeout)
+				_ = conn.Close()
+
+				var line string
+				if bannerText != "" {
+					line = fmt.Sprintf("[*] Port %v is Opened -> %s", port, bannerText)
+					fmt.Printf("%v%s%v\n", Green, line, Reset)
+				} else {
+					service, ok := serviceMap[port]
+					if !ok {
+						service = "UNKNOWN"
+					}
+					line = fmt.Sprintf("[*] Port %v is open (no banner received; service guess: %s)", port, service)
+					fmt.Printf("%v%s%v\n", Green, line, Reset)
+				}
+
 				mu.Lock()
 				results = append(results, line)
 				mu.Unlock()
 			}
 		}()
 	}
+
+	for _, port := range ports {
+		jobs <- port
+	}
+	close(jobs)
 	wg.Wait()
 	return results
+}
+
+func loop(cfg Config) {
+	ports := knownPorts()
+	Scan(cfg, ports)
+}
+
+func knownPorts() []int {
+	ports := make([]int, 0, len(serviceMap))
+	for port := range serviceMap {
+		ports = append(ports, port)
+	}
+	sort.Ints(ports)
+	return ports
+}
+
+func popularPorts() []int {
+	const limit = 20
+	if len(servicePorts) < limit {
+		return append([]int(nil), servicePorts...)
+	}
+	return append([]int(nil), servicePorts[:limit]...)
 }
 
 func ScanAll(cfg Config) []string {
-	var wg sync.WaitGroup
-	sem := make(chan struct{}, cfg.Workers)
-	var mu sync.Mutex
-	results := make([]string, 0)
-
-	for port := 1; port <= 65535; port++ {
-		port := port
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			sem <- struct{}{}
-			defer func() { <-sem }()
-			if line := scanSinglePort(cfg.Target, port, cfg.Timeout); line != "" {
-				mu.Lock()
-				results = append(results, line)
-				mu.Unlock()
-			}
-		}()
+	ports := make([]int, 65535)
+	for i := range ports {
+		ports[i] = i + 1
 	}
-	wg.Wait()
-	return results
+	return Scan(cfg, ports)
 }

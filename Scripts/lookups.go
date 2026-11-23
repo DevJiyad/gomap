@@ -3,52 +3,46 @@ package main
 import (
 	"fmt"
 	"net"
+	"strings"
 )
 
-func LookupHost(cfg Config) {
-	hs, err := net.LookupHost(cfg.Target)
-	if err != nil {
-		fmt.Printf("%s[!] Lookup failed for %s: %v%s\n", Red, cfg.Target, err, Reset)
-		return
-	}
-	if len(hs) == 0 {
-		fmt.Printf("%s[!] Lookup returned no Host for %s%s\n", Red, cfg.Target, Reset)
-		return
-	}
-
-	fmt.Printf("%s[*] Host lookup for %s%s\n", Cyan, cfg.Target, Reset)
-	seen := make(map[string]struct{}, len(hs))
-	for _, h := range hs {
-		if _, exists := seen[h]; exists {
-			continue
+func Lookup(cfg *Config) {
+	parseIP := net.ParseIP(cfg.Target)
+	if parseIP == nil {
+		ips, err := net.LookupIP(cfg.Target)
+		if err != nil {
+			fmt.Printf("Host %v could not be resolved\n", cfg.Target)
+			return
 		}
-		seen[h] = struct{}{}
-		fmt.Printf("%s%v    -> %s%s\n", Green, cfg.Target, h, Reset)
+		cfg.Target = ips[0].String()
+		fmt.Printf("[*] Resolved target to: %s\n", cfg.Target)
 	}
-	fmt.Printf("%vHost is running%v", Green, Reset)
 
+	if cfg.All || cfg.PortSpec != "" {
+		return
+	}
+
+	loop(*cfg)
 }
 
-func LookupIP(cfg Config) {
-	ips, err := net.LookupIP(cfg.Target)
-	if err != nil {
-		fmt.Printf("%s[!] Lookup failed for %s: %v%s\n", Red, cfg.Target, err, Reset)
-		return
-	}
-	if len(ips) == 0 {
-		fmt.Printf("%s[!] Lookup returned no IP addresses for %s%s\n", Red, cfg.Target, Reset)
-		return
-	}
-
-	fmt.Printf("%s[*] IP Lookup for %s%s\n", Cyan, cfg.Target, Reset)
-	seen := make(map[string]struct{}, len(ips))
-	for _, ip := range ips {
-		address := ip.String()
-		if _, exists := seen[address]; exists {
-			continue
+func LookupDiscovery(cfg *Config) {
+	parseIP := net.ParseIP(cfg.Target)
+	if parseIP == nil {
+		ips, err := net.LookupIP(cfg.Target)
+		if err != nil {
+			fmt.Printf("Host %v could not be resolved", cfg.Target)
+			return
 		}
-		seen[address] = struct{}{}
-		fmt.Printf("%s%v    -> %s%s\n", Green, cfg.Target, address, Reset)
+		cfg.Target = ips[0].String()
 	}
-	fmt.Printf("%vIp is running%v", Green, Reset)
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(cfg.Target, "80"), cfg.Timeout)
+	if err != nil {
+		if !strings.Contains(err.Error(), "refused") {
+			fmt.Printf("Host %v is not running (unreachable)\n", cfg.Target)
+			return
+		}
+	} else {
+		conn.Close()
+	}
+	fmt.Printf("Host %v is running \n", cfg.Target)
 }

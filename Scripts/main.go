@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"time"
 )
 
@@ -29,8 +30,11 @@ func PrintBanner(cfg Config) {
 
 func main() {
 	cfg := ParseFlags()
+	if serviceMapErr != nil {
+		fmt.Fprintf(os.Stderr, "Warning: %v; service names will be UNKNOWN\n", serviceMapErr)
+	}
 
-	noFlags := cfg.Target == "" || cfg.PortSpec == "" && !cfg.All && !cfg.Lookup && !cfg.LookupH
+	noFlags := cfg.Target == "" || cfg.PortSpec == "" && !cfg.All && !cfg.Lookup && !cfg.LookupDiscovery && !cfg.Banner
 
 	if noFlags {
 		fmt.Println(Red + "Error: Missing argument" + Reset)
@@ -39,6 +43,7 @@ func main() {
 	}
 
 	var ports []int
+
 	if cfg.PortSpec != "" && !cfg.All {
 		var err error
 		ports, err = ParsePorts(cfg.PortSpec)
@@ -47,22 +52,25 @@ func main() {
 			return
 		}
 	}
+	if cfg.Banner && cfg.PortSpec == "" && !cfg.All {
+		ports = popularPorts()
+	}
 
 	PrintBanner(cfg)
 	start := time.Now()
 
+	var results []string
 	if cfg.Lookup {
-		LookupIP(cfg)
+		Lookup(&cfg)
 	}
-	if cfg.LookupH {
-		LookupHost(cfg)
+	if cfg.LookupDiscovery {
+		LookupDiscovery(&cfg)
 	}
 
-	var results []string
 	if cfg.All {
 		results = ScanAll(cfg)
-	} else if cfg.PortSpec != "" {
-		results = ScanPorts(cfg, ports)
+	} else if len(ports) > 0 {
+		results = Scan(cfg, ports)
 	}
 
 	fmt.Printf(Yellow+"\n[!] Scan finished in %v\n"+Reset, time.Since(start).Round(time.Millisecond))
