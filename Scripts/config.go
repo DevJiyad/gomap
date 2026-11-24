@@ -29,7 +29,7 @@ func ParseFlags() Config {
 	flag.BoolVar(&cfg.LookupDiscovery, "ipd", false, "Lookup IP address for targets only without scanning top 10 ports")
 	flag.DurationVar(&cfg.Timeout, "timeout", 500*time.Millisecond, "Timeout per port (e.g. 500ms, 1s)")
 	flag.StringVar(&cfg.Output, "o", "", "Save scan results to a file")
-	flag.IntVar(&cfg.Workers, "w", 500, "Control the amount of workers")
+	flag.IntVar(&cfg.Workers, "w", 200, "Control the amount of workers")
 	flag.BoolVar(&cfg.Banner, "b", false, "Scan the 20 most common TCP ports and read server banners")
 	flag.Parse()
 	cfg.Target = flag.Arg(0)
