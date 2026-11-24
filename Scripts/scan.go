@@ -48,7 +48,7 @@ func Scan(cfg Config, ports []int) []string {
 					if !ok {
 						service = "UNKNOWN"
 					}
-					line = fmt.Sprintf("[*] Port %v is open (no banner received; service guess: %s)", port, service)
+					line = fmt.Sprintf("[*] Port %v is Opened -> %v", port, service)
 					fmt.Printf("%v%s%v\n", Green, line, Reset)
 				}
 
