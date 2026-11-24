@@ -34,7 +34,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Warning: %v; service names will be UNKNOWN\n", serviceMapErr)
 	}
 
-	noFlags := cfg.Target == "" || cfg.PortSpec == "" && !cfg.All && !cfg.Lookup && !cfg.LookupDiscovery && !cfg.Banner
+	targetOnly := cfg.Target != "" && flag.NFlag() == 0
+	noFlags := cfg.Target == "" || cfg.PortSpec == "" && !cfg.All && !cfg.Lookup && !cfg.LookupDiscovery && !cfg.Banner && !targetOnly
 
 	if noFlags {
 		fmt.Println(Red + "Error: Missing argument" + Reset)
@@ -44,6 +45,9 @@ func main() {
 
 	var ports []int
 
+	if targetOnly {
+		ports = popPorts()
+	}
 	if cfg.PortSpec != "" && !cfg.All {
 		var err error
 		ports, err = ParsePorts(cfg.PortSpec)
@@ -53,7 +57,7 @@ func main() {
 		}
 	}
 	if cfg.Banner && cfg.PortSpec == "" && !cfg.All {
-		ports = popularPorts()
+		ports = popPorts()
 	}
 
 	PrintBanner(cfg)

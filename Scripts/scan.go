@@ -81,7 +81,7 @@ func knownPorts() []int {
 	return ports
 }
 
-func popularPorts() []int {
+func popPorts() []int {
 	const limit = 20
 	if len(servicePorts) < limit {
 		return append([]int(nil), servicePorts...)
